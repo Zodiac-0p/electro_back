@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: electromodules-backend
+    env: python
+    plan: free
+    buildCommand: bash build.sh
+    startCommand: gunicorn config.wsgi:application
+    pythonVersion: 3.11.8
