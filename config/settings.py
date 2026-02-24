@@ -1,4 +1,6 @@
 from datetime import timedelta
+
+from requests.utils import default_headers
 """
 Django settings for config project.
 
@@ -76,10 +78,11 @@ SIMPLE_JWT = {
 }
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
     "corsheaders.middleware.CorsMiddleware",
     'django.middleware.common.CommonMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -169,7 +172,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://electro-37qs.vercel.app"
 ]
 
-CORS_ALLOW_HEADERS = [
+CORS_ALLOW_HEADERS = list(default_headers) + [
     "content-type",
     "authorization",
     "x-csrftoken",
