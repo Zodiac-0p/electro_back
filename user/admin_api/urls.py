@@ -1,3 +1,4 @@
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 from .views import AdminUserViewSet, AdminOrderViewSet, AdminPaymentViewSet
 
@@ -11,4 +12,11 @@ router.register(
     basename="admin-orders"
 )
 
-urlpatterns = router.urls
+# add standalone login endpoint before router urls so /users/login/ works
+from .views import AdminLoginView
+
+urlpatterns = [
+    path("login/", AdminLoginView.as_view(), name="admin-login"),
+]
+
+urlpatterns += router.urls

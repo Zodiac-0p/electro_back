@@ -28,6 +28,7 @@ urlpatterns = [
     path("api/", include("user.urls")),
     path('api/catalog/', include('catalog.urls')), 
     path("api/user/", include("user.urls")),
+    path("api/admin/", include("user.admin_api.urls")),
 
 ]
 # ✅ ALWAYS serve media on Render

@@ -8,16 +8,16 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 import random
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework import status
 from rest_framework import generics, permissions, status
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from firebase_admin import auth as fb_auth
 from rest_framework_simplejwt.tokens import RefreshToken
+from config.firebase_admin import init_firebase
+User = get_user_model()
+
 
 import random
 
@@ -130,47 +130,50 @@ class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        identifier = request.data.get("identifier") or request.data.get("username")
+        identifier = (request.data.get("identifier") or "").strip()
         password = request.data.get("password")
+
+        if not identifier or not password:
+            return Response({"detail": "Identifier and password are required"}, status=400)
+
         user = None
 
-        # Login with username
+        # 1) try username directly
         user = authenticate(request, username=identifier, password=password)
 
-        # Login with email
+        # 2) try email
         if not user:
-            try:
-                user_obj = User.objects.get(email=identifier)
-                user = authenticate(
-                    request,
-                    username=user_obj.username,
-                    password=password,
-                )
-            except User.DoesNotExist:
-                pass
+            u = User.objects.filter(email__iexact=identifier).first()
+            if u:
+                user = authenticate(request, username=u.username, password=password)
+
+        # 3) try phone number
+        if not user:
+            u = User.objects.filter(phone_number=identifier).first()
+            if u:
+                user = authenticate(request, username=u.username, password=password)
 
         if not user:
-            return Response({"error": "Invalid credentials"}, status=401)
+            return Response({"detail": "Invalid email/phone/username or password"}, status=401)
 
-        # Block login if not verified
+        # if you want to block unverified accounts
         if hasattr(user, "is_verified") and not user.is_verified:
-            return Response({"error": "Please verify your email first."}, status=403)
+            return Response({"detail": "Please verify your email first."}, status=403)
 
         refresh = RefreshToken.for_user(user)
 
-        return Response(
-            {
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
+        return Response({
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+            "user": {
+                "id": user.id,
                 "username": user.username,
                 "email": user.email,
-                "is_staff": user.is_staff,
-                "is_superuser": user.is_superuser,
-            },
-            status=200,
-        )
-
-
+                "phone_number": user.phone_number,
+            }
+        }, status=200)
+        
+        
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -234,6 +237,21 @@ class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
 # -------------------------
 class CartView(APIView):
     permission_classes = [AllowAny]
+    # allow JWTAuthentication so valid tokens populate request.user, but catch
+    # AuthenticationFailed exceptions to avoid returning 401 for bad tokens.
+    from rest_framework_simplejwt.authentication import JWTAuthentication
+    authentication_classes = [JWTAuthentication]
+
+    def initial(self, request, *args, **kwargs):
+        from rest_framework.exceptions import AuthenticationFailed
+        from django.contrib.auth.models import AnonymousUser
+        try:
+            super().initial(request, *args, **kwargs)
+        except AuthenticationFailed:
+            # treat as anonymous rather than aborting
+            request.user = AnonymousUser()
+            request.auth = None
+
 
     def get(self, request):
         if request.user.is_authenticated:
@@ -247,6 +265,17 @@ class CartView(APIView):
 
 class AddCartItemView(APIView):
     permission_classes = [AllowAny]
+    from rest_framework_simplejwt.authentication import JWTAuthentication
+    authentication_classes = [JWTAuthentication]
+
+    def initial(self, request, *args, **kwargs):
+        from rest_framework.exceptions import AuthenticationFailed
+        from django.contrib.auth.models import AnonymousUser
+        try:
+            super().initial(request, *args, **kwargs)
+        except AuthenticationFailed:
+            request.user = AnonymousUser()
+            request.auth = None
 
     def post(self, request):
         product_id = str(request.data.get("product"))
@@ -267,6 +296,17 @@ class AddCartItemView(APIView):
 
 class RemoveCartItemView(APIView):
     permission_classes = [AllowAny]
+    from rest_framework_simplejwt.authentication import JWTAuthentication
+    authentication_classes = [JWTAuthentication]
+
+    def initial(self, request, *args, **kwargs):
+        from rest_framework.exceptions import AuthenticationFailed
+        from django.contrib.auth.models import AnonymousUser
+        try:
+            super().initial(request, *args, **kwargs)
+        except AuthenticationFailed:
+            request.user = AnonymousUser()
+            request.auth = None
 
     def delete(self, request, pk):
         if request.user.is_authenticated:
@@ -758,4 +798,151 @@ def verify_phone_otp(request):
         return Response(
             {"detail": "OTP verification failed", "twilio_message": e.msg},
             status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+class GoogleLoginAPIView(APIView):
+    """
+    Expects: { "token": "<firebase_id_token>" }
+    Returns: { "access": "...", "refresh": "...", "user": {...} }
+    """
+
+    authentication_classes = []  # allow unauthenticated
+    permission_classes = []      # allow anyone
+
+    def post(self, request):
+        init_firebase()
+
+        id_token = request.data.get("token")
+        if not id_token:
+            return Response({"detail": "Token is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            decoded = fb_auth.verify_id_token(id_token)
+            email = decoded.get("email")
+            name = decoded.get("name") or ""
+            uid = decoded.get("uid")
+
+            if not email:
+                return Response({"detail": "Google account has no email"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # create/get user
+            user, created = User.objects.get_or_create(email=email, defaults={
+                "username": email.split("@")[0],
+                "first_name": name.split(" ")[0] if name else "",
+                "is_active": True,
+            })
+
+            # if username already exists conflict, ensure unique username
+            if created:
+                base = user.username
+                i = 1
+                while User.objects.filter(username=user.username).exclude(pk=user.pk).exists():
+                    user.username = f"{base}{i}"
+                    i += 1
+                user.set_unusable_password()
+                user.save()
+
+            # generate JWT
+            refresh = RefreshToken.for_user(user)
+            access = str(refresh.access_token)
+
+            return Response({
+                "access": access,
+                "refresh": str(refresh),
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                }
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"detail": f"Invalid token: {str(e)}"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # -------------------------
+# Phone LOGIN OTP (Twilio) - PUBLIC
+# -------------------------
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def phone_login_send_otp(request):
+    phone = normalize_india_phone(request.data.get("phone_number"))
+
+    if not phone or not phone.startswith("+"):
+        return Response({"detail": "Phone must be like +919999999999"}, status=400)
+
+    client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+
+    try:
+        verification = client.verify.v2.services(
+            settings.TWILIO_VERIFY_SERVICE_SID
+        ).verifications.create(to=phone, channel="sms")
+
+        return Response({"detail": "OTP sent", "status": verification.status}, status=200)
+
+    except TwilioRestException as e:
+        return Response(
+            {"detail": "We couldn’t find an account with this number. Create a new account to continue.", "twilio_message": e.msg},
+            status=400
+        )
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def phone_login_verify_otp(request):
+    phone = normalize_india_phone(request.data.get("phone_number"))
+    code = (request.data.get("otp") or "").strip()
+
+    if not phone or not phone.startswith("+"):
+        return Response({"detail": "Phone must be like +919999999999"}, status=400)
+
+    if not code or not code.isdigit() or len(code) != 4:
+        return Response({"detail": "Enter valid 4-digit OTP"}, status=400)
+
+    client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+
+    try:
+        check = client.verify.v2.services(
+            settings.TWILIO_VERIFY_SERVICE_SID
+        ).verification_checks.create(to=phone, code=code)
+
+        if check.status != "approved":
+            return Response({"detail": "Invalid or expired OTP"}, status=400)
+
+        user, created = User.objects.get_or_create(
+            phone_number=phone,
+            defaults={
+                "username": f"user_{phone[-6:]}",
+                "is_active": True,
+            }
+        )
+
+        if created:
+            base = user.username
+            i = 1
+            while User.objects.filter(username=user.username).exclude(pk=user.pk).exists():
+                user.username = f"{base}{i}"
+                i += 1
+            user.set_unusable_password()
+            user.save()
+
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "phone_number": user.phone_number,
+                },
+            },
+            status=200,
+        )
+
+    except TwilioRestException as e:
+        return Response(
+            {"detail": "OTP verification failed", "twilio_message": e.msg},
+            status=400
         )

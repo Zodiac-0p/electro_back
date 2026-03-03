@@ -3,16 +3,28 @@ from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 
+# catalog/models.py (or wherever Category is)
+from django.db import models
+
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(unique=True)
+
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="children",
+    )
+
+    image = models.ImageField(upload_to="category_icons/", blank=True, null=True)
 
     class Meta:
         verbose_name_plural = "Categories"
 
     def __str__(self):
         return self.name
-
 
 class Brand(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -23,6 +35,14 @@ class Brand(models.Model):
 
 
 class Product(models.Model):
+    seller = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="seller_products",
+        null=True,
+        blank=True,
+    )
+
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="products")
     brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name="products")
 
@@ -36,11 +56,9 @@ class Product(models.Model):
     stock = models.PositiveIntegerField(default=0)
     is_available = models.BooleanField(default=True)
 
-    # Featured & popularity
     is_featured = models.BooleanField(default=False)
     popularity_score = models.PositiveIntegerField(default=0)
 
-    # Ratings (stored on product for faster listing)
     average_rating = models.FloatField(default=0)
     review_count = models.PositiveIntegerField(default=0)
 

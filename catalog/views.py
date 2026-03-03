@@ -18,12 +18,25 @@ class IsAdminUser(permissions.BasePermission):
 
 # --------- Category ---------
 class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.all()
+    queryset = Category.objects.all().order_by('name')
     serializer_class = CategorySerializer
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'slug']
     ordering_fields = ['name']
+
+    def list(self, request, *args, **kwargs):
+        """
+        Override list to return top-level categories by default and include children.
+        If `all=true` query param is provided, return all categories flat.
+        """
+        all_flag = request.query_params.get('all')
+        if all_flag and all_flag.lower() in ['1', 'true', 'yes']:
+            self.queryset = Category.objects.all().order_by('name')
+        else:
+            # top-level categories only
+            self.queryset = Category.objects.filter(parent__isnull=True).order_by('name')
+        return super().list(request, *args, **kwargs)
 
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:
