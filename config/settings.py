@@ -174,7 +174,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:5173", # React frontend
     
-    "https://electro-37qs.vercel.app"
+    "https://electro-w3wa.onrender.com", # Deployed frontend
 ]
 
 CORS_ALLOW_HEADERS = [
