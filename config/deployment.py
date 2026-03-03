@@ -19,6 +19,7 @@ ALLOWED_HOSTS = list(filter(None, [
 
 CSRF_TRUSTED_ORIGINS = [
     "https://" + os.environ.get("RENDER_EXTERNAL_HOSTNAME"),
+    "https://electro-w3wa.onrender.com",
     "https://electromdoules-frontend.onrender.com",
     "https://electromodules.shop",
 ]
@@ -66,6 +67,7 @@ DATABASES = {
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = list(filter(None, [
     *os.getenv("CORS_ALLOWED_ORIGINS", "").split(","),
+    "https://electro-w3wa.onrender.com",
     "https://electromdoules-frontend.onrender.com",
     "https://electromodules.shop",
 ]))
