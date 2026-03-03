@@ -3,36 +3,34 @@ from pathlib import Path
 import os
 
 from dotenv import load_dotenv
+import dj_database_url
+from corsheaders.defaults import default_headers
 
-# -----------------------------
-# Base
-# -----------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 # -----------------------------
 # Security / Env
 # -----------------------------
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-change-me")
-DEBUG = os.getenv("DEBUG", "False") == "True"
+SECRET_KEY = os.getenv("SECRET_KEY", os.getenv("DJANGO_SECRET_KEY", "django-insecure-change-me"))
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-# Render backend host (change if your backend URL is different)
-RENDER_BACKEND_HOST = os.getenv("RENDER_BACKEND_HOST", "electromdoules-backend.onrender.com")
+RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")  # Render sets this automatically
 
-ALLOWED_HOSTS = [
-    "127.0.0.1",
-    "localhost",
-    RENDER_BACKEND_HOST,
-]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
-# If you use Render health checks/headers, this helps behind proxies:
+# If you have custom domain:
+CUSTOM_DOMAIN = os.getenv("CUSTOM_DOMAIN")  # e.g. electromodules.shop
+if CUSTOM_DOMAIN:
+    ALLOWED_HOSTS.append(CUSTOM_DOMAIN)
+
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # -----------------------------
-# Firebase credentials (DO NOT COMMIT JSON)
+# Firebase credentials (optional local file)
 # -----------------------------
-# Best practice: use env var in Render instead of a file.
-# But keeping your existing approach for local (file exists locally).
 firebase_path = BASE_DIR / "secrets" / "firebase-admin.json"
 if firebase_path.exists():
     os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", str(firebase_path))
@@ -79,30 +77,25 @@ INSTALLED_APPS = [
 ]
 
 # -----------------------------
-# Middleware (clean + correct order)
+# Middleware (FIXED ORDER)
 # -----------------------------
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
 
+    # ✅ CORS must be early
     "corsheaders.middleware.CorsMiddleware",
-    "django.middleware.common.CommonMiddleware",
 
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# -----------------------------
-# URLs / WSGI
-# -----------------------------
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
 
-# -----------------------------
-# Templates
-# -----------------------------
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -119,14 +112,24 @@ TEMPLATES = [
 ]
 
 # -----------------------------
-# DB
+# Database (SQLite local, Postgres on Render)
 # -----------------------------
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=True,
+        )
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 # -----------------------------
 # Auth / User
@@ -149,13 +152,13 @@ USE_I18N = True
 USE_TZ = True
 
 # -----------------------------
-# Static / Media (Render-friendly)
+# Static / Media
 # -----------------------------
 STATIC_URL = "/static/"
-STATIC_ROOT = "/var/data/static"
+STATIC_ROOT = os.getenv("STATIC_ROOT", str(BASE_DIR / "staticfiles"))
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_ROOT = os.getenv("MEDIA_ROOT", str(BASE_DIR / "media"))
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -166,8 +169,9 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    # ✅ Allow browsing products/categories without login by default
     "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
+        "rest_framework.permissions.AllowAny",
     ),
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",
@@ -184,29 +188,36 @@ SIMPLE_JWT = {
 }
 
 # -----------------------------
-# CORS / CSRF (THIS FIXES YOUR ERROR)
+# CORS / CSRF (FIXES YOUR CORS ERROR)
 # -----------------------------
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:5173",
-
-    # Deployed frontend
     "https://electro-w3wa.onrender.com",
 ]
 
-# If you use cookies/session auth or any CSRF-protected POSTs from frontend:
+# Add more origins via env: CORS_ALLOWED_ORIGINS="https://a.com,https://b.com"
+extra = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+for o in extra:
+    if o not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(o)
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "authorization",
+    "content-type",
+    "x-csrftoken",
+]
+
 CSRF_TRUSTED_ORIGINS = [
     "https://electro-w3wa.onrender.com",
 ]
-
-# Only needed if you face header issues; django-cors-headers handles defaults.
-# from corsheaders.defaults import default_headers
-# CORS_ALLOW_HEADERS = list(default_headers) + ["authorization"]
+if RENDER_EXTERNAL_HOSTNAME:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 
 # -----------------------------
 # Optional URLs used in your app
 # -----------------------------
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
-FRONTEND_LOGIN_URL = os.getenv("FRONTEND_LOGIN_URL", "http://127.0.0.1:3000/account/login")
+FRONTEND_LOGIN_URL = os.getenv("FRONTEND_LOGIN_URL", "http://localhost:5173/account/login")
