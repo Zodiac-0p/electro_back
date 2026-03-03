@@ -66,3 +66,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+secrets/firebase-service.json
+secrets/*.json
+*.json
