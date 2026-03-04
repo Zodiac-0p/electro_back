@@ -27,6 +27,7 @@ if RENDER_EXTERNAL_HOSTNAME:
 # ✅ Always allow your Render service domain explicitly
 ALLOWED_HOSTS += [
     "electro-back-5.onrender.com",
+    "electro-backend-f1rh.onrender.com",
 ]
 
 # If you have custom domain:
@@ -197,36 +198,39 @@ SIMPLE_JWT = {
 # -----------------------------
 # CORS / CSRF (FIXED FOR JWT)
 # -----------------------------
-# ✅ You are using JWT + Authorization header + frontend uses credentials:"omit"
+
+# ✅ JWT APIs (Authorization header). No cookies, so credentials not needed.
 CORS_ALLOW_CREDENTIALS = False
 
+# ✅ Do NOT use ALLOW_ALL in production (security + confusion)
+CORS_ALLOW_ALL_ORIGINS = False
+
+# ✅ Allow your deployed frontend + local dev
 CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:3000",
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
     "https://electro-w3wa.onrender.com",
-    "https://electro-backend-f1rh.onrender.com",
 ]
 
-# Add more origins via env: CORS_ALLOWED_ORIGINS="https://a.com,https://b.com"
+# Optional: allow more via env (comma separated)
 extra = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
 for o in extra:
     if o not in CORS_ALLOWED_ORIGINS:
         CORS_ALLOWED_ORIGINS.append(o)
 
+# ✅ Headers needed for JWT
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "authorization",
     "content-type",
-    "x-csrftoken",
 ]
 
-# ⚠️ CSRF is not required for JWT APIs, but keeping doesn't hurt
+# ✅ CSRF is not required for JWT APIs.
+# Keep this only if you have any cookie-based endpoints.
 CSRF_TRUSTED_ORIGINS = [
     "https://electro-w3wa.onrender.com",
-    'https://electro-backend-f1rh.onrender.com',
 ]
 if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
-
 # -----------------------------
 # Optional URLs used in your app
 # -----------------------------
