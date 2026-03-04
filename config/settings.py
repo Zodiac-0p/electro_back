@@ -17,9 +17,17 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")  # Render sets this automatically
 
+# ✅ Allowed hosts (FIXED)
 ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+
+# Render assigned hostname (if available)
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+# ✅ Always allow your Render service domain explicitly
+ALLOWED_HOSTS += [
+    "electro-back-5.onrender.com",
+]
 
 # If you have custom domain:
 CUSTOM_DOMAIN = os.getenv("CUSTOM_DOMAIN")  # e.g. electromodules.shop
@@ -77,14 +85,13 @@ INSTALLED_APPS = [
 ]
 
 # -----------------------------
-# Middleware (FIXED ORDER)
+# Middleware (RECOMMENDED ORDER)
 # -----------------------------
 MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-
-    # ✅ CORS must be early
+    # ✅ CORS should be first
     "corsheaders.middleware.CorsMiddleware",
 
+    "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -188,9 +195,10 @@ SIMPLE_JWT = {
 }
 
 # -----------------------------
-# CORS / CSRF (FIXES YOUR CORS ERROR)
+# CORS / CSRF (FIXED FOR JWT)
 # -----------------------------
-CORS_ALLOW_CREDENTIALS = True
+# ✅ You are using JWT + Authorization header + frontend uses credentials:"omit"
+CORS_ALLOW_CREDENTIALS = False
 
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
@@ -210,6 +218,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     "x-csrftoken",
 ]
 
+# ⚠️ CSRF is not required for JWT APIs, but keeping doesn't hurt
 CSRF_TRUSTED_ORIGINS = [
     "https://electro-w3wa.onrender.com",
 ]
