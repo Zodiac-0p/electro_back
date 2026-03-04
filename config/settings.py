@@ -204,6 +204,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:5173",
     "https://electro-w3wa.onrender.com",
+    "https://electro-backend-f1rh.onrender.com",
 ]
 
 # Add more origins via env: CORS_ALLOWED_ORIGINS="https://a.com,https://b.com"
@@ -221,6 +222,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 # ⚠️ CSRF is not required for JWT APIs, but keeping doesn't hurt
 CSRF_TRUSTED_ORIGINS = [
     "https://electro-w3wa.onrender.com",
+    'https://electro-backend-f1rh.onrender.com',
 ]
 if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
