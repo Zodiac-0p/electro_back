@@ -78,24 +78,35 @@ if DATABASE_URL:
 # else: fallback stays from base settings (sqlite)
 
 # ---------------- CORS ----------------
-
 CORS_ALLOW_CREDENTIALS = True
 
-extra_origins = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+extra_origins = [
+    o.strip()
+    for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+    if o.strip()
+]
 
 CORS_ALLOWED_ORIGINS = list(dict.fromkeys([
     *extra_origins,
-    "https://electro-w3wa.onrender.com",            # ✅ your current frontend
+    "https://electro-w3wa.onrender.com",           # ✅ your current frontend
     "https://electromdoules-frontend.onrender.com",
     "https://electromodules.shop",
     "http://localhost:5173",
 ]))
+
+# ✅ Very important: allow preflight OPTIONS to succeed
+from corsheaders.defaults import default_methods, default_headers
+
+CORS_ALLOW_METHODS = list(default_methods)
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "authorization",
     "content-type",
     "x-csrftoken",
 ]
+
+# ✅ Sometimes needed when you use Authorization header
+CORS_EXPOSE_HEADERS = ["Content-Type", "Authorization"]
 
 # ---------------- JWT ----------------
 
