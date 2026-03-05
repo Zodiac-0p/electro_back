@@ -18,8 +18,7 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")  # Render sets this automatically
 
 # ✅ Allowed hosts (FIXED)
-ALLOWED_HOSTS = ["*"]
-# ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 # Render assigned hostname (if available)
 if RENDER_EXTERNAL_HOSTNAME:
@@ -211,7 +210,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://electro-w3wa.onrender.com",
-    "https://www.electro-w3wa.onrender.com",
+    
 ]
 
 # Optional: allow more via env (comma separated)
