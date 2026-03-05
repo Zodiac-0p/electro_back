@@ -24,10 +24,12 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
-ALLOWED_HOSTS += [
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
     "electro-backend-f1rh.onrender.com",
     "electro-back-5.onrender.com",
-    ".onrender.com",  # ✅ allow any render subdomain
+    ".onrender.com",  # ✅ allows any onrender subdomain
 ]
 
 if CUSTOM_DOMAIN:
