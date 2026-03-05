@@ -18,28 +18,28 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
 CUSTOM_DOMAIN = os.getenv("CUSTOM_DOMAIN")
 
-# ✅ ALLOWED_HOSTS (fixes DisallowedHost)
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
-
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
-
+# -----------------------------
+# ALLOWED HOSTS (FIXED)
+# -----------------------------
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "electro-backend-f1rh.onrender.com",
     "electro-back-5.onrender.com",
-    ".onrender.com",  # ✅ allows any onrender subdomain
+    ".onrender.com",
 ]
 
-if CUSTOM_DOMAIN:
+if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+if CUSTOM_DOMAIN and CUSTOM_DOMAIN not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(CUSTOM_DOMAIN)
 
-# ✅ Needed behind Render/Cloudflare proxy
+# Render proxy
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # -----------------------------
-# Firebase credentials (optional local file)
+# Firebase credentials
 # -----------------------------
 firebase_path = BASE_DIR / "secrets" / "firebase-admin.json"
 if firebase_path.exists():
@@ -87,16 +87,15 @@ INSTALLED_APPS = [
 ]
 
 # -----------------------------
-# Middleware (Correct order)
+# Middleware (CORRECT ORDER)
 # -----------------------------
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
 
-    # ✅ Whitenoise serves static on Render (optional but recommended)
-    "whitenoise.middleware.WhiteNoiseMiddleware",
-
-    # ✅ CORS must be before CommonMiddleware
+    # CORS MUST be before CommonMiddleware
     "corsheaders.middleware.CorsMiddleware",
+
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -109,6 +108,9 @@ MIDDLEWARE = [
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
 
+# -----------------------------
+# Templates
+# -----------------------------
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -128,6 +130,7 @@ TEMPLATES = [
 # Database
 # -----------------------------
 DATABASE_URL = os.getenv("DATABASE_URL")
+
 if DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.config(
@@ -145,7 +148,7 @@ else:
     }
 
 # -----------------------------
-# Auth / User
+# Custom User
 # -----------------------------
 AUTH_USER_MODEL = "user.User"
 
@@ -157,7 +160,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # -----------------------------
-# i18n
+# Internationalization
 # -----------------------------
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
@@ -165,20 +168,20 @@ USE_I18N = True
 USE_TZ = True
 
 # -----------------------------
-# Static / Media (✅ Render-safe)
+# Static / Media (Render safe)
 # -----------------------------
 STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"  # ✅ IMPORTANT: NOT /var/data
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# ✅ Whitenoise storage
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # -----------------------------
-# DRF + JWT
+# Django REST Framework
 # -----------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -196,13 +199,16 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
 }
 
+# -----------------------------
+# JWT
+# -----------------------------
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
 
 # -----------------------------
-# CORS / CSRF (JWT, no cookies)
+# CORS (FRONTEND)
 # -----------------------------
 CORS_ALLOW_CREDENTIALS = False
 CORS_ALLOW_ALL_ORIGINS = False
@@ -213,8 +219,12 @@ CORS_ALLOWED_ORIGINS = [
     "https://electro-w3wa.onrender.com",
 ]
 
-# allow extra origins via env (comma-separated)
-extra_origins = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+extra_origins = [
+    o.strip()
+    for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+    if o.strip()
+]
+
 for o in extra_origins:
     if o not in CORS_ALLOWED_ORIGINS:
         CORS_ALLOWED_ORIGINS.append(o)
@@ -224,15 +234,19 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     "content-type",
 ]
 
+# -----------------------------
+# CSRF
+# -----------------------------
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "https://electro-w3wa.onrender.com",
 ]
+
 if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 
 # -----------------------------
-# Optional URLs (✅ fixed getenv usage)
+# Optional URLs
 # -----------------------------
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 FRONTEND_LOGIN_URL = os.getenv("FRONTEND_LOGIN_URL", "http://localhost:5173/account/login")
