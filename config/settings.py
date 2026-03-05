@@ -18,7 +18,8 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")  # Render sets this automatically
 
 # ✅ Allowed hosts (FIXED)
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ["*"]
+# ["127.0.0.1", "localhost"]
 
 # Render assigned hostname (if available)
 if RENDER_EXTERNAL_HOSTNAME:
