@@ -18,22 +18,22 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
 CUSTOM_DOMAIN = os.getenv("CUSTOM_DOMAIN")
 
+# ✅ ALLOWED_HOSTS (fixes DisallowedHost)
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
-# Render hostname (if available)
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
-# Explicit domains + wildcard safety
 ALLOWED_HOSTS += [
     "electro-backend-f1rh.onrender.com",
     "electro-back-5.onrender.com",
-    ".onrender.com",  # ✅ IMPORTANT: allows any onrender subdomain
+    ".onrender.com",  # ✅ allow any render subdomain
 ]
 
 if CUSTOM_DOMAIN:
     ALLOWED_HOSTS.append(CUSTOM_DOMAIN)
 
+# ✅ Needed behind Render/Cloudflare proxy
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # -----------------------------
@@ -90,6 +90,9 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
 
+    # ✅ Whitenoise serves static on Render (optional but recommended)
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+
     # ✅ CORS must be before CommonMiddleware
     "corsheaders.middleware.CorsMiddleware",
 
@@ -120,7 +123,7 @@ TEMPLATES = [
 ]
 
 # -----------------------------
-# Database (SQLite local, Postgres on Render)
+# Database
 # -----------------------------
 DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL:
@@ -160,13 +163,15 @@ USE_I18N = True
 USE_TZ = True
 
 # -----------------------------
-# Static / Media
+# Static / Media (✅ Render-safe)
 # -----------------------------
 STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
-
+STATIC_ROOT = BASE_DIR / "staticfiles"  # ✅ IMPORTANT: NOT /var/data
 MEDIA_URL = "/media/"
-MEDIA_ROOT = os.getenv("MEDIA_ROOT", str(BASE_DIR / "media"))
+MEDIA_ROOT = BASE_DIR / "media"
+
+# ✅ Whitenoise storage
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -224,6 +229,8 @@ CSRF_TRUSTED_ORIGINS = [
 if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 
-# Optional URLs
-BACKEND_URL = os.getenv("https://electro-backend-f1rh.onrender.com", "http://127.0.0.1:8000")
-FRONTEND_LOGIN_URL = os.getenv("https://electro-w3wa.onrender.com", "http://localhost:5173/account/login")
+# -----------------------------
+# Optional URLs (✅ fixed getenv usage)
+# -----------------------------
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
+FRONTEND_LOGIN_URL = os.getenv("FRONTEND_LOGIN_URL", "http://localhost:5173/account/login")
