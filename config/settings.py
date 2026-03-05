@@ -15,23 +15,22 @@ load_dotenv(BASE_DIR / ".env")
 SECRET_KEY = os.getenv("SECRET_KEY", os.getenv("DJANGO_SECRET_KEY", "django-insecure-change-me"))
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")  # Render sets this automatically
+RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+CUSTOM_DOMAIN = os.getenv("CUSTOM_DOMAIN")
 
-# ✅ Allowed hosts (FIXED)
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
-# Render assigned hostname (if available)
+# Render hostname (if available)
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
-# ✅ Always allow your Render service domain explicitly
+# Explicit domains + wildcard safety
 ALLOWED_HOSTS += [
-    "electro-back-5.onrender.com",
     "electro-backend-f1rh.onrender.com",
+    "electro-back-5.onrender.com",
+    ".onrender.com",  # ✅ IMPORTANT: allows any onrender subdomain
 ]
 
-# If you have custom domain:
-CUSTOM_DOMAIN = os.getenv("CUSTOM_DOMAIN")  # e.g. electromodules.shop
 if CUSTOM_DOMAIN:
     ALLOWED_HOSTS.append(CUSTOM_DOMAIN)
 
@@ -86,13 +85,14 @@ INSTALLED_APPS = [
 ]
 
 # -----------------------------
-# Middleware (RECOMMENDED ORDER)
+# Middleware (Correct order)
 # -----------------------------
 MIDDLEWARE = [
-    # ✅ CORS should be first
+    "django.middleware.security.SecurityMiddleware",
+
+    # ✅ CORS must be before CommonMiddleware
     "corsheaders.middleware.CorsMiddleware",
 
-    "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -177,7 +177,6 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    # ✅ Allow browsing products/categories without login by default
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.AllowAny",
     ),
@@ -196,44 +195,35 @@ SIMPLE_JWT = {
 }
 
 # -----------------------------
-# CORS / CSRF (FIXED FOR JWT)
+# CORS / CSRF (JWT, no cookies)
 # -----------------------------
-
-# ✅ JWT APIs (Authorization header). No cookies, so credentials not needed.
 CORS_ALLOW_CREDENTIALS = False
-
-# ✅ Do NOT use ALLOW_ALL in production (security + confusion)
 CORS_ALLOW_ALL_ORIGINS = False
 
-# ✅ Allow your deployed frontend + local dev
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://electro-w3wa.onrender.com",
-    
 ]
 
-# Optional: allow more via env (comma separated)
-extra = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
-for o in extra:
+# allow extra origins via env (comma-separated)
+extra_origins = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+for o in extra_origins:
     if o not in CORS_ALLOWED_ORIGINS:
         CORS_ALLOWED_ORIGINS.append(o)
 
-# ✅ Headers needed for JWT
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "authorization",
     "content-type",
 ]
 
-# ✅ CSRF is not required for JWT APIs.
-# Keep this only if you have any cookie-based endpoints.
 CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
     "https://electro-w3wa.onrender.com",
 ]
 if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
-# -----------------------------
-# Optional URLs used in your app
-# -----------------------------
-BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
-FRONTEND_LOGIN_URL = os.getenv("FRONTEND_LOGIN_URL", "http://localhost:5173/account/login")
+
+# Optional URLs
+BACKEND_URL = os.getenv("https://electro-backend-f1rh.onrender.com", "http://127.0.0.1:8000")
+FRONTEND_LOGIN_URL = os.getenv("https://electro-w3wa.onrender.com", "http://localhost:5173/account/login")

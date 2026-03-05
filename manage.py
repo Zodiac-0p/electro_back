@@ -6,8 +6,11 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    settings_module = 'config.deployment' if 'RENDER_EXTERNAL_HOSTNAME' in os.environ else 'config.settings'
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', settings_module)
+    os.environ.setdefault(
+        "DJANGO_SETTINGS_MODULE",
+        os.getenv("DJANGO_SETTINGS_MODULE", "config.settings"),
+    )
+
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
@@ -16,8 +19,9 @@ def main():
             "available on your PYTHONPATH environment variable? Did you "
             "forget to activate a virtual environment?"
         ) from exc
+
     execute_from_command_line(sys.argv)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
