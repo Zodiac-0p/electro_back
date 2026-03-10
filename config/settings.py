@@ -30,6 +30,7 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "electro-backend-f1rh.onrender.com",
     "electro-back-5.onrender.com",
+    ".onrender.com",
 ]
 
 if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
@@ -243,6 +244,16 @@ CORS_ALLOW_METHODS = [
     "PATCH",
     "POST",
     "PUT",
+]
+
+# -----------------------------
+# CSRF
+# -----------------------------
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://electro-w3wa.onrender.com",
+    "https://papaya-toffee-0fee09.netlify.app",
 ]
 
 # -----------------------------
