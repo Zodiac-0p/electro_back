@@ -10,6 +10,7 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 RENDER_HOST = os.getenv("RENDER_EXTERNAL_HOSTNAME")
 CUSTOM_DOMAIN = os.getenv("CUSTOM_DOMAIN")
+ON_RENDER = os.getenv("RENDER") == "true" or bool(RENDER_HOST)
 
 ALLOWED_HOSTS = [
     "localhost",
@@ -24,6 +25,10 @@ if RENDER_HOST and RENDER_HOST not in ALLOWED_HOSTS:
 
 if CUSTOM_DOMAIN and CUSTOM_DOMAIN not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(CUSTOM_DOMAIN)
+
+# On Render, allow any host (health checks / proxy host headers)
+if ON_RENDER:
+    ALLOWED_HOSTS = ["*"]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -44,8 +49,8 @@ if DATABASE_URL:
 # MIDDLEWARE
 # ----------------------------
 MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -70,7 +75,8 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # CORS
 # ----------------------------
 CORS_ALLOW_CREDENTIALS = False
-CORS_ALLOW_ALL_ORIGINS = False
+# Allow all origins on Render to ensure CORS headers are present
+CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "false").lower() == "true" or ON_RENDER
 
 CORS_ALLOWED_ORIGINS = [
     "https://electro-w3wa.onrender.com",
@@ -84,6 +90,9 @@ for o in extra:
         CORS_ALLOWED_ORIGINS.append(o)
 
 CORS_ALLOW_HEADERS = list(default_headers) + ["authorization", "content-type"]
+
+# Explicitly allow common methods (including preflight OPTIONS)
+CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://electro-w3wa.onrender.com",
