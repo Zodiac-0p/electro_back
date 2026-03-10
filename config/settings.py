@@ -55,6 +55,8 @@ TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
 TWILIO_VERIFY_SID = os.getenv("TWILIO_VERIFY_SID", "")
 TWILIO_VERIFY_SERVICE_SID = os.getenv("TWILIO_VERIFY_SERVICE_SID", "")
+TWILIO_VERIFY_TEMPLATE_SID = os.getenv("TWILIO_VERIFY_TEMPLATE_SID", "")
+
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
@@ -90,11 +92,8 @@ INSTALLED_APPS = [
 # Middleware (CORRECT ORDER)
 # -----------------------------
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",  # Must be first to add CORS headers to all responses
     "django.middleware.security.SecurityMiddleware",
-
-    # CORS MUST be before CommonMiddleware
-    "corsheaders.middleware.CorsMiddleware",
-
     "whitenoise.middleware.WhiteNoiseMiddleware",
 
     "django.contrib.sessions.middleware.SessionMiddleware",

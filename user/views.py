@@ -750,7 +750,11 @@ def send_phone_otp(request):
     try:
         verification = client.verify.v2.services(
             settings.TWILIO_VERIFY_SERVICE_SID
-        ).verifications.create(to=phone, channel="sms")
+        ).verifications.create(
+            to=phone,
+            channel="sms",
+            template_sid=settings.TWILIO_VERIFY_TEMPLATE_SID
+        )
 
         print("✅ Verify send status:", verification.status)
         return Response({"detail": "OTP sent", "status": verification.status})
@@ -761,7 +765,6 @@ def send_phone_otp(request):
             {"detail": "Failed to send OTP", "twilio_message": e.msg},
             status=400
         )
-
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])

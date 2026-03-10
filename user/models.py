@@ -169,6 +169,10 @@ class Payment(models.Model):
     def __str__(self):
         return f"{self.order.id} - {self.status}"
 
+class QuotationRequest(models.Model):from django.conf import settings
+from django.db import models
+
+
 class QuotationRequest(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending"),
@@ -192,12 +196,15 @@ class QuotationRequest(models.Model):
 
     business_name = models.CharField(max_length=200)
     business_type = models.CharField(max_length=50)
-    
+
     category = models.CharField(max_length=50, default="general")
-    
     budget = models.CharField(max_length=100, blank=True, null=True)
 
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -205,9 +212,26 @@ class QuotationRequest(models.Model):
 
     def __str__(self):
         return f"QuotationRequest {self.id} - {self.business_name}"
-    
-    class SupportTicket(models.Model):
-        user = models.ForeignKey(
+
+
+class SupportTicket(models.Model):
+    CATEGORY_CHOICES = [
+        ("order", "Order Issue"),
+        ("payment", "Payment Issue"),
+        ("product", "Product Issue"),
+        ("delivery", "Delivery Issue"),
+        ("account", "Account Issue"),
+        ("other", "Other"),
+    ]
+
+    PRIORITY_CHOICES = [
+        ("low", "Low"),
+        ("medium", "Medium"),
+        ("high", "High"),
+        ("urgent", "Urgent"),
+    ]
+
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
@@ -220,6 +244,9 @@ class QuotationRequest(models.Model):
     message = models.TextField()
     attachment = models.FileField(upload_to="support_tickets/", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
 
     def __str__(self):
         return self.subject

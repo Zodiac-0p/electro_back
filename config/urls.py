@@ -23,16 +23,12 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("api/admin/catalog/", include("catalog.admin_api.urls")),
     path("api/admin/users/", include("user.admin_api.urls")),
+    path("api/admin/", include("user.admin_api.urls")),
     path("debug-media/", debug_media),
     path("api/user/", include("user.urls")),
+    path("api/catalog/", include("catalog.urls")),  # Must be before api/ so catalog routes match
     path("api/", include("user.urls")),
-    path('api/catalog/', include('catalog.urls')), 
-    path("api/user/", include("user.urls")),
-    path("api/admin/", include("user.admin_api.urls")),
-
 ]
-# ✅ ALWAYS serve media on Render
-urlpatterns += static(
-    settings.MEDIA_URL,
-    document_root=settings.MEDIA_ROOT
-)
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
