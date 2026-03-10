@@ -12,22 +12,24 @@ load_dotenv(BASE_DIR / ".env")
 # -----------------------------
 # Security / Env
 # -----------------------------
-SECRET_KEY = os.getenv("SECRET_KEY", os.getenv("DJANGO_SECRET_KEY", "django-insecure-change-me"))
+SECRET_KEY = os.getenv(
+    "SECRET_KEY",
+    os.getenv("DJANGO_SECRET_KEY", "django-insecure-change-me")
+)
+
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
 CUSTOM_DOMAIN = os.getenv("CUSTOM_DOMAIN")
-ON_RENDER = os.getenv("RENDER") == "true" or bool(RENDER_EXTERNAL_HOSTNAME)
 
 # -----------------------------
-# ALLOWED HOSTS (FIXED)
+# Allowed Hosts
 # -----------------------------
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "electro-backend-f1rh.onrender.com",
     "electro-back-5.onrender.com",
-    ".onrender.com",
 ]
 
 if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
@@ -36,11 +38,9 @@ if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
 if CUSTOM_DOMAIN and CUSTOM_DOMAIN not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(CUSTOM_DOMAIN)
 
-# On Render, allow any host (health checks / proxy can send different Host headers)
-if ON_RENDER:
-    ALLOWED_HOSTS = ["*"]
-
-# Render proxy
+# -----------------------------
+# Proxy / SSL
+# -----------------------------
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # -----------------------------
@@ -62,7 +62,6 @@ TWILIO_VERIFY_SID = os.getenv("TWILIO_VERIFY_SID", "")
 TWILIO_VERIFY_SERVICE_SID = os.getenv("TWILIO_VERIFY_SERVICE_SID", "")
 TWILIO_VERIFY_TEMPLATE_SID = os.getenv("TWILIO_VERIFY_TEMPLATE_SID", "")
 
-
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
@@ -72,7 +71,7 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # -----------------------------
-# Apps
+# Installed Apps
 # -----------------------------
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -94,13 +93,12 @@ INSTALLED_APPS = [
 ]
 
 # -----------------------------
-# Middleware (CORRECT ORDER)
+# Middleware
 # -----------------------------
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",  # Must be first to add CORS headers to all responses
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
-
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -172,7 +170,7 @@ USE_I18N = True
 USE_TZ = True
 
 # -----------------------------
-# Static / Media (Render safe)
+# Static / Media
 # -----------------------------
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -212,12 +210,9 @@ SIMPLE_JWT = {
 }
 
 # -----------------------------
-# CORS (FRONTEND)
+# CORS
 # -----------------------------
 CORS_ALLOW_CREDENTIALS = False
-
-# On Render, allow all origins so CORS headers are always sent (fixes "no header" when proxy/origin differs)
-CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "false").lower() == "true" or ON_RENDER
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
@@ -226,21 +221,20 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 extra_origins = [
-    o.strip()
-    for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
-    if o.strip()
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
 ]
 
-for o in extra_origins:
-    if o not in CORS_ALLOWED_ORIGINS:
-        CORS_ALLOWED_ORIGINS.append(o)
+for origin in extra_origins:
+    if origin not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(origin)
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "authorization",
     "content-type",
 ]
 
-# Explicitly allow common methods (including OPTIONS for preflight)
 CORS_ALLOW_METHODS = [
     "DELETE",
     "GET",
@@ -255,14 +249,20 @@ CORS_ALLOW_METHODS = [
 # -----------------------------
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
     "https://electro-w3wa.onrender.com",
 ]
 
 if RENDER_EXTERNAL_HOSTNAME:
-    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
+    render_origin = f"https://{RENDER_EXTERNAL_HOSTNAME}"
+    if render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(render_origin)
 
 # -----------------------------
 # Optional URLs
 # -----------------------------
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
-FRONTEND_LOGIN_URL = os.getenv("FRONTEND_LOGIN_URL", "http://localhost:5173/account/login")
+FRONTEND_LOGIN_URL = os.getenv(
+    "FRONTEND_LOGIN_URL",
+    "http://localhost:5173/account/login"
+)
