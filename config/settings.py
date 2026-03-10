@@ -218,6 +218,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://electro-w3wa.onrender.com",
+    "https://papaya-toffee-0fee09.netlify.app",
 ]
 
 extra_origins = [
@@ -251,6 +252,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://electro-w3wa.onrender.com",
+    "https://papaya-toffee-0fee09.netlify.app",
 ]
 
 if RENDER_EXTERNAL_HOSTNAME:
@@ -261,8 +263,8 @@ if RENDER_EXTERNAL_HOSTNAME:
 # -----------------------------
 # Optional URLs
 # -----------------------------
-BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
+BACKEND_URL = os.getenv("BACKEND_URL", "https://electro-backend-f1rh.onrender.com")
 FRONTEND_LOGIN_URL = os.getenv(
     "FRONTEND_LOGIN_URL",
-    "http://localhost:5173/account/login"
+    "https://papaya-toffee-0fee09.netlify.app/account/login"
 )
