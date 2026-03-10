@@ -17,6 +17,7 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
 CUSTOM_DOMAIN = os.getenv("CUSTOM_DOMAIN")
+ON_RENDER = os.getenv("RENDER") == "true" or bool(RENDER_EXTERNAL_HOSTNAME)
 
 # -----------------------------
 # ALLOWED HOSTS (FIXED)
@@ -34,6 +35,10 @@ if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
 
 if CUSTOM_DOMAIN and CUSTOM_DOMAIN not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(CUSTOM_DOMAIN)
+
+# On Render, allow any host (health checks / proxy can send different Host headers)
+if ON_RENDER:
+    ALLOWED_HOSTS = ["*"]
 
 # Render proxy
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -212,7 +217,6 @@ SIMPLE_JWT = {
 CORS_ALLOW_CREDENTIALS = False
 
 # On Render, allow all origins so CORS headers are always sent (fixes "no header" when proxy/origin differs)
-ON_RENDER = os.getenv("RENDER") == "true" or bool(RENDER_EXTERNAL_HOSTNAME)
 CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "false").lower() == "true" or ON_RENDER
 
 CORS_ALLOWED_ORIGINS = [
