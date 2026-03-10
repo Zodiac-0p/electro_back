@@ -210,7 +210,10 @@ SIMPLE_JWT = {
 # CORS (FRONTEND)
 # -----------------------------
 CORS_ALLOW_CREDENTIALS = False
-CORS_ALLOW_ALL_ORIGINS = False
+
+# On Render, allow all origins so CORS headers are always sent (fixes "no header" when proxy/origin differs)
+ON_RENDER = os.getenv("RENDER") == "true" or bool(RENDER_EXTERNAL_HOSTNAME)
+CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "false").lower() == "true" or ON_RENDER
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
@@ -231,6 +234,16 @@ for o in extra_origins:
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "authorization",
     "content-type",
+]
+
+# Explicitly allow common methods (including OPTIONS for preflight)
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
 ]
 
 # -----------------------------
