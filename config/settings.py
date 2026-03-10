@@ -38,7 +38,7 @@ if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
 
 if CUSTOM_DOMAIN and CUSTOM_DOMAIN not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(CUSTOM_DOMAIN)
-
+    
 # -----------------------------
 # Proxy / SSL
 # -----------------------------
