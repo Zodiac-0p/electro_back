@@ -269,3 +269,8 @@ FRONTEND_LOGIN_URL = os.getenv(
     "FRONTEND_LOGIN_URL",
     "https://papaya-toffee-0fee09.netlify.app/account/login"
 )
+
+
+
+print("USING ACTIVE SETTINGS FILE")
+print("ALLOWED_HOSTS VALUE:", ALLOWED_HOSTS)
